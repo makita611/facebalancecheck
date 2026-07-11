@@ -850,7 +850,8 @@ def show_result(res, phase_label, adj_params=None):
 
     col1, col2 = st.columns([3, 2])
     with col1:
-        st.image(img, use_container_width=True)
+        dw = st.session_state.get("display_w", 600)
+        st.image(img, width=dw)
         if adj_params:
             show_landmark_adjustment(res, **adj_params)
     with col2:
@@ -1062,7 +1063,7 @@ def show_landmark_adjustment(res, phase, axis_mode, show_golden, iris_mm, do_eye
 
 
 def main():
-    st.title("アートメイク 顔面バランス分析")
+    st.title("アートメイクface バランス分析")
     st.caption("MediaPipe Face Mesh | LLMフリー・トークンゼロ版 Ver 3.0")
 
     fm = get_face_mesh()
@@ -1114,6 +1115,14 @@ def main():
         bg_choice = st.selectbox("背景カラー", list(BG_OPTIONS.keys()))
 
         st.divider()
+        display_w = st.select_slider(
+            "🖼 画像の表示サイズ",
+            options=[300, 400, 500, 600, 700, 800],
+            value=st.session_state.get("display_w", 600),
+        )
+        st.session_state["display_w"] = display_w
+
+        st.divider()
         run_btn = st.button("✅ 設定を反映して分析を更新",
                             type="primary", use_container_width=True)
 
@@ -1140,7 +1149,8 @@ def main():
             st.session_state.phase_settings_sig[phase] != settings_sig):
         st.warning("設定が変更されています。「設定を反映して分析を更新」ボタンを押してください。")
 
-    uploaded = st.file_uploader(
+    _up_col, _ = st.columns([2, 1])
+    uploaded = _up_col.file_uploader(
         f"{phase}の顔写真", type=["jpg","jpeg","png"],
         key=f"up_{phase}",
     )
@@ -1199,7 +1209,7 @@ def main():
         st.divider()
         st.subheader("比較ビュー")
         opts = [p for p,_ in available]
-        c1, c2 = st.columns(2)
+        c1, c2, _ = st.columns([2, 2, 1])
         lp = c1.selectbox("左（比較元）", opts, key="cmp_l")
         rp = c2.selectbox("右（比較先）", opts,
                            index=min(1, len(opts)-1), key="cmp_r")
@@ -1207,13 +1217,14 @@ def main():
             ld = st.session_state.phase_data[lp]
             rd = st.session_state.phase_data[rp]
             col1, col2 = st.columns(2)
+            dw = st.session_state.get("display_w", 600)
             with col1:
                 st.caption(f"{PHASE_ICONS.get(lp,'')} {lp}")
-                st.image(ld["draw_rgb"], use_container_width=True)
+                st.image(ld["draw_rgb"], width=dw)
                 st.metric("スコア", f"{ld['score']}/100", delta=ld["grade"])
             with col2:
                 st.caption(f"{PHASE_ICONS.get(rp,'')} {rp}")
-                st.image(rd["draw_rgb"], use_container_width=True)
+                st.image(rd["draw_rgb"], width=dw)
                 delta = rd["score"] - ld["score"]
                 st.metric("スコア", f"{rd['score']}/100",
                           delta=f"{delta:+d}点", delta_color="normal")
